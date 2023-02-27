@@ -1,5 +1,5 @@
 [package]
-name = "wolf3D_macroquad"
+name = "wolf3d_macroquad"
 version = "0.1.0"
 edition = "2021"
 
