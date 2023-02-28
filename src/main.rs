@@ -123,8 +123,8 @@ async fn main() {
     loop {
         clear_background(macroquad::color::Color::from_rgba(224, 248, 207, 255));
 
-        for (x, x_line) in MAP.iter().enumerate() {
-            for (y, val) in x_line.iter().enumerate() {
+        for (y, y_line) in MAP.iter().enumerate() {
+            for (x, val) in y_line.iter().enumerate() {
                 match val {
                     1 => {
                         let start_x = x as f32 * SIZE_BOCK;
@@ -161,15 +161,15 @@ async fn main() {
 
         draw_circle(game_state.player_x, game_state.player_y, 15.0, YELLOW);
 
-        if is_key_down(KeyCode::Down) {
-            game_state.player_y -= PLAYER_SPEED * game_state.player_angle_radians.sin();
-            game_state.player_x -= PLAYER_SPEED * game_state.player_angle_radians.cos();
+        {
+            if is_key_down(KeyCode::Up) {
+                walk(&mut game_state, PLAYER_SPEED);
+            }
+            if is_key_down(KeyCode::Down) {
+                walk(&mut game_state, -PLAYER_SPEED);
+            }
         }
-        if is_key_down(KeyCode::Up) {
-            game_state.player_y += PLAYER_SPEED * game_state.player_angle_radians.sin();
-            game_state.player_x += PLAYER_SPEED * game_state.player_angle_radians.cos();
 
-        }
         if is_key_down(KeyCode::Right) {
             game_state.player_angle_radians += 0.1;
         }
@@ -182,4 +182,14 @@ async fn main() {
 
         next_frame().await
     }
+}
+
+fn walk(state: &mut State, speed: f32) {
+    let dx = speed * state.player_angle_radians.cos();
+    let dy = speed * state.player_angle_radians.sin();
+
+    dbg!(dx);
+
+    state.player_x += dx;
+    state.player_y += dy;
 }
