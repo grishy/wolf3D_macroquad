@@ -96,6 +96,7 @@ const MAP: [[usize; 30]; 30] = [
 const SIZE_BOCK: f32 = 24.0;
 const SIZE_PLAYER: f32 = 12.0;
 const PLAYER_SPEED: f32 = 0.1;
+const focalLength: f32 = 0.8;
 
 struct State {
     player_x: f32,
@@ -142,6 +143,29 @@ async fn main() {
                     0 => {}
                     _ => panic!("wrong number in map"),
                 }
+            }
+        }
+
+        {
+            let num_ray = macroquad::window::screen_width() as i32;
+            let num_ray = 20;
+
+            for column in 0..num_ray {
+                // -0.5 < x < 0.5
+                let x = column as f32 / num_ray as f32 - 0.5;
+                let angle = game_state.player_angle_radians + x.atan2(focalLength);
+                let length = 10.0;
+
+                let (ray_x, ray_y) = castRay(&mut game_state, angle, length);
+
+                draw_line(
+                    game_state.player_x * SIZE_BOCK,
+                    game_state.player_y * SIZE_BOCK,
+                    (game_state.player_x + ray_x) * SIZE_BOCK,
+                    (game_state.player_y + ray_y) * SIZE_BOCK,
+                    1.0,
+                    RED,
+                );
             }
         }
 
@@ -222,4 +246,11 @@ fn walk(state: &mut State, speed: f32) {
     if !collision(state.player_x, state.player_y + collision_y) {
         state.player_y += dy;
     }
+}
+
+fn castRay(state: &mut State, angle: f32, range: f32) -> (f32, f32) {
+    let ray_x = range * angle.cos();
+    let ray_y = range * angle.sin();
+
+    (ray_x, ray_y)
 }
