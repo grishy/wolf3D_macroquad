@@ -148,13 +148,13 @@ async fn main() {
 
         {
             let num_ray = macroquad::window::screen_width() as i32;
-            let num_ray = 20;
+            // let num_ray = 20;
 
             for column in 0..num_ray {
                 // -0.5 < x < 0.5
                 let x = column as f32 / num_ray as f32 - 0.5;
                 let angle = game_state.player_angle_radians + x.atan2(focalLength);
-                let length = 10.0;
+                let length = 40.0;
 
                 let (ray_x, ray_y) = castRay(&mut game_state, angle, length);
 
@@ -214,7 +214,7 @@ async fn main() {
     }
 }
 
-fn collision(x: f32, y: f32) -> bool {
+fn collision_check(x: f32, y: f32) -> bool {
     let x_r = x.floor() as usize;
     let y_r = y.floor() as usize;
 
@@ -239,18 +239,72 @@ fn walk(state: &mut State, speed: f32) {
         -radius_plater_in_map
     };
 
-    if !collision(state.player_x + collision_x, state.player_y) {
+    if !collision_check(state.player_x + collision_x, state.player_y) {
         state.player_x += dx;
     };
 
-    if !collision(state.player_x, state.player_y + collision_y) {
+    if !collision_check(state.player_x, state.player_y + collision_y) {
         state.player_y += dy;
     }
 }
 
 fn castRay(state: &mut State, angle: f32, range: f32) -> (f32, f32) {
-    let ray_x = range * angle.cos();
-    let ray_y = range * angle.sin();
+    let sin = angle.sin();
+    let cos = angle.cos();
+    let tan = sin / cos;
+    let cot = cos / sin;
+    let cosNegative = cos < 0.0;
+    let sinNegative = sin < 0.0;
 
-    (ray_x, ray_y)
+    let mut currentX = state.player_x;
+    let mut currentY = state.player_y;
+
+    let mut distance = 0.0;
+
+    while (distance < range) {
+        // Collision with the nearest axis X
+        let dxx = if cosNegative {
+            (currentX - 1.0).ceil() - currentX
+        } else {
+            (currentX + 1.0).floor() - currentX
+        };
+
+        let dxy = dxx * tan;
+        let lengthX2 = dxx * dxx + dxy * dxy;
+
+        // Collision with the nearest axis Y
+        let dyx = if sinNegative {
+            (currentY - 1.0).ceil() - currentY
+        } else {
+            (currentY + 1.0).floor() - currentY
+        };
+
+        let dyy = dyx * cot;
+        let lengthY2 = dyx * dyx + dyy * dyy;
+
+        let mut collision = false;
+
+        if (lengthX2 < lengthY2) {
+            currentX = currentX + dxx;
+            currentY = currentY + dxy;
+            distance = distance + lengthX2.sqrt();
+
+            let shift = if cosNegative { 1.0 } else { 0.0 };
+
+            collision = collision_check(currentX - shift, currentY);
+        } else {
+            currentX = currentX + dyy;
+            currentY = currentY + dyx;
+            distance = distance + lengthY2.sqrt();
+
+            let shift = if sinNegative { 1.0 } else { 0.0 };
+            collision = collision_check(currentX, currentY - shift);
+        }
+
+        if (collision) {
+            break;
+        };
+    }
+
+    (currentX, currentY)
 }
