@@ -93,8 +93,9 @@ const MAP: [[usize; 30]; 30] = [
     ],
 ];
 
-const SIZE_BOCK: f32 = 32.0;
-const PLAYER_SPEED: f32 = 2.0;
+const SIZE_BOCK: f32 = 24.0;
+const SIZE_PLAYER: f32 = 12.0;
+const PLAYER_SPEED: f32 = 0.1;
 
 struct State {
     player_x: f32,
@@ -106,7 +107,7 @@ fn window_conf() -> Conf {
     Conf {
         window_title: "Wolf3D Macroquad".to_owned(),
         window_width: 1024,
-        window_height: 1024,
+        window_height: 768,
         window_resizable: false,
         ..Default::default()
     }
@@ -115,8 +116,8 @@ fn window_conf() -> Conf {
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut game_state: State = State {
-        player_x: 200.0,
-        player_y: 200.0,
+        player_x: 2.2,
+        player_y: 2.2,
         player_angle_radians: 0.0,
     };
 
@@ -145,21 +146,26 @@ async fn main() {
         }
 
         {
-            let length = 64.0;
+            let length = 3.0;
             let dx = length * game_state.player_angle_radians.cos();
             let dy = length * game_state.player_angle_radians.sin();
 
             draw_line(
-                game_state.player_x,
-                game_state.player_y,
-                game_state.player_x + dx,
-                game_state.player_y + dy,
+                game_state.player_x * SIZE_BOCK,
+                game_state.player_y * SIZE_BOCK,
+                (game_state.player_x + dx) * SIZE_BOCK,
+                (game_state.player_y + dy) * SIZE_BOCK,
                 2.0,
                 BLUE,
             );
         }
 
-        draw_circle(game_state.player_x, game_state.player_y, 15.0, YELLOW);
+        draw_circle(
+            game_state.player_x * SIZE_BOCK,
+            game_state.player_y * SIZE_BOCK,
+            SIZE_PLAYER,
+            YELLOW,
+        );
 
         {
             if is_key_down(KeyCode::Up) {
@@ -184,12 +190,36 @@ async fn main() {
     }
 }
 
+fn collision(x: f32, y: f32) -> bool {
+    let x_r = x.floor() as usize;
+    let y_r = y.floor() as usize;
+
+    MAP[y_r][x_r] != 0
+}
+
 fn walk(state: &mut State, speed: f32) {
     let dx = speed * state.player_angle_radians.cos();
     let dy = speed * state.player_angle_radians.sin();
 
-    dbg!(dx);
+    let radius_plater_in_map = SIZE_PLAYER / SIZE_BOCK;
 
-    state.player_x += dx;
-    state.player_y += dy;
+    let collision_x = if dx > 0.0 {
+        radius_plater_in_map
+    } else {
+        -radius_plater_in_map
+    };
+
+    let collision_y = if dy > 0.0 {
+        radius_plater_in_map
+    } else {
+        -radius_plater_in_map
+    };
+
+    if !collision(state.player_x + collision_x, state.player_y) {
+        state.player_x += dx;
+    };
+
+    if !collision(state.player_x, state.player_y + collision_y) {
+        state.player_y += dy;
+    }
 }
