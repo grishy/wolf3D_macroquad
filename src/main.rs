@@ -1,3 +1,4 @@
+use macroquad::math;
 use macroquad::prelude::*;
 
 // more info: https://grantshandy.github.io/posts/raycasting/
@@ -140,6 +141,7 @@ struct State {
     player_x: f32,
     player_y: f32,
     player_angle_radians: f32,
+    render: Renter,
 }
 
 fn window_conf() -> Conf {
@@ -152,82 +154,126 @@ fn window_conf() -> Conf {
     }
 }
 
+fn draw_top(game_state: &mut State) {
+    for (y, y_line) in MAP.iter().enumerate() {
+        for (x, val) in y_line.iter().enumerate() {
+            match val {
+                1 => {
+                    let start_x = x as f32 * SIZE_BOCK;
+                    let start_y = y as f32 * SIZE_BOCK;
+
+                    draw_rectangle(
+                        start_x,
+                        start_y,
+                        SIZE_BOCK,
+                        SIZE_BOCK,
+                        macroquad::color::Color::from_rgba(48, 104, 80, 255),
+                    );
+                }
+                0 => {}
+                _ => panic!("wrong number in map"),
+            }
+        }
+    }
+
+    {
+        let num_ray = macroquad::window::screen_width() as i32 / 2;
+
+        for column in 0..=num_ray {
+            // -0.5 < x < 0.5
+            let x = column as f32 / num_ray as f32 - 0.5;
+            let angle = game_state.player_angle_radians + x.atan2(focalLength);
+            let length = 40.0;
+
+            let (ray_x, ray_y) = castRay(game_state, angle, length);
+
+            draw_line(
+                game_state.player_x * SIZE_BOCK,
+                game_state.player_y * SIZE_BOCK,
+                (ray_x) * SIZE_BOCK,
+                (ray_y) * SIZE_BOCK,
+                1.0,
+                RED,
+            );
+        }
+    }
+
+    {
+        let length = 3.0;
+        let dx = length * game_state.player_angle_radians.cos();
+        let dy = length * game_state.player_angle_radians.sin();
+
+        draw_line(
+            game_state.player_x * SIZE_BOCK,
+            game_state.player_y * SIZE_BOCK,
+            (game_state.player_x + dx) * SIZE_BOCK,
+            (game_state.player_y + dy) * SIZE_BOCK,
+            2.0,
+            BLUE,
+        );
+    }
+
+    draw_circle(
+        game_state.player_x * SIZE_BOCK,
+        game_state.player_y * SIZE_BOCK,
+        SIZE_PLAYER,
+        YELLOW,
+    );
+}
+
+fn draw_first(game_state: &mut State) {
+    {
+        let num_ray = macroquad::window::screen_width() as i32;
+
+        for column in 0..=num_ray {
+            // -0.5 < x < 0.5
+            let x = column as f32 / num_ray as f32 - 0.5;
+            let angle = game_state.player_angle_radians + x.atan2(focalLength);
+            let length = 40.0;
+
+            let (ray_x, ray_y) = castRay(game_state, angle, length);
+
+            let v_player = dvec2(game_state.player_x as f64, game_state.player_y as f64);
+            let v_ray = dvec2(ray_x as f64, ray_y as f64);
+            let distance = v_player.distance(v_ray) as f32;
+            let wallHeight = 1000.0 / distance;
+
+            let middle = macroquad::window::screen_height() / 2.0;
+            let color = 10.0 / distance * 255.0;
+
+            draw_line(
+                column as f32,
+                middle - wallHeight,
+                column as f32,
+                middle + wallHeight,
+                1.0,
+                Color::from_rgba(255, 0, 0, color as u8),
+            );
+        }
+    }
+}
+
+enum Renter {
+    Top,
+    FirstPerson,
+}
+
 #[macroquad::main(window_conf)]
 async fn main() {
     let mut game_state: State = State {
         player_x: 2.2,
         player_y: 2.2,
         player_angle_radians: 0.0,
+        render: Renter::Top,
     };
 
     loop {
         clear_background(macroquad::color::Color::from_rgba(224, 248, 207, 255));
 
-        for (y, y_line) in MAP.iter().enumerate() {
-            for (x, val) in y_line.iter().enumerate() {
-                match val {
-                    1 => {
-                        let start_x = x as f32 * SIZE_BOCK;
-                        let start_y = y as f32 * SIZE_BOCK;
-
-                        draw_rectangle(
-                            start_x,
-                            start_y,
-                            SIZE_BOCK,
-                            SIZE_BOCK,
-                            macroquad::color::Color::from_rgba(48, 104, 80, 255),
-                        );
-                    }
-                    0 => {}
-                    _ => panic!("wrong number in map"),
-                }
-            }
+        match game_state.render {
+            Renter::Top => draw_top(&mut game_state),
+            Renter::FirstPerson => draw_first(&mut game_state),
         }
-
-        {
-            let num_ray = macroquad::window::screen_width() as i32;
-            // let num_ray = 20;
-
-            for column in 0..=num_ray {
-                // -0.5 < x < 0.5
-                let x = column as f32 / num_ray as f32 - 0.5;
-                let angle = game_state.player_angle_radians + x.atan2(focalLength);
-                let length = 40.0;
-
-                let (ray_x, ray_y) = castRay(&mut game_state, angle, length);
-
-                draw_line(
-                    game_state.player_x * SIZE_BOCK,
-                    game_state.player_y * SIZE_BOCK,
-                    (ray_x) * SIZE_BOCK,
-                    (ray_y) * SIZE_BOCK,
-                    1.0,
-                    RED,
-                );
-            }
-        }
-
-        {
-            let length = 3.0;
-            let dx = length * game_state.player_angle_radians.cos();
-            let dy = length * game_state.player_angle_radians.sin();
-
-            draw_line(
-                game_state.player_x * SIZE_BOCK,
-                game_state.player_y * SIZE_BOCK,
-                (game_state.player_x + dx) * SIZE_BOCK,
-                (game_state.player_y + dy) * SIZE_BOCK,
-                2.0,
-                BLUE,
-            );
-        }
-
-        draw_circle(
-            game_state.player_x * SIZE_BOCK,
-            game_state.player_y * SIZE_BOCK,
-            SIZE_PLAYER,
-            YELLOW,
-        );
 
         {
             if is_key_down(KeyCode::Up) {
@@ -239,15 +285,23 @@ async fn main() {
         }
 
         if is_key_down(KeyCode::Right) {
-            game_state.player_angle_radians += 0.1;
+            game_state.player_angle_radians += 0.05;
         }
         if is_key_down(KeyCode::Left) {
-            game_state.player_angle_radians -= 0.1;
+            game_state.player_angle_radians -= 0.05;
         }
         if is_key_down(KeyCode::Escape) {
             std::process::exit(0)
         }
 
+        {
+            if is_key_down(KeyCode::Z) {
+                game_state.render = Renter::Top;
+            }
+            if is_key_down(KeyCode::X) {
+                game_state.render = Renter::FirstPerson;
+            }
+        }
         next_frame().await
     }
 }
@@ -346,4 +400,3 @@ fn castRay(state: &mut State, angle: f32, range: f32) -> (f32, f32) {
 
     (currentX, currentY)
 }
-
