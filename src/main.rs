@@ -235,7 +235,7 @@ fn draw_first(game_state: &mut State) {
 
             let v_player = dvec2(game_state.player_x as f64, game_state.player_y as f64);
             let v_ray = dvec2(ray_x as f64, ray_y as f64);
-            let distance = v_player.distance(v_ray) as f32;
+            let distance = v_player.distance(v_ray) as f32 * x.atan2(focalLength).cos();
             let wallHeight = 1000.0 / distance;
 
             let middle = macroquad::window::screen_height() / 2.0;
