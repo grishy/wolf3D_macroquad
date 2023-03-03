@@ -188,7 +188,7 @@ async fn main() {
             let num_ray = macroquad::window::screen_width() as i32;
             // let num_ray = 20;
 
-            for column in 0..num_ray {
+            for column in 0..=num_ray {
                 // -0.5 < x < 0.5
                 let x = column as f32 / num_ray as f32 - 0.5;
                 let angle = game_state.player_angle_radians + x.atan2(focalLength);
@@ -199,8 +199,8 @@ async fn main() {
                 draw_line(
                     game_state.player_x * SIZE_BOCK,
                     game_state.player_y * SIZE_BOCK,
-                    (game_state.player_x + ray_x) * SIZE_BOCK,
-                    (game_state.player_y + ray_y) * SIZE_BOCK,
+                    (ray_x) * SIZE_BOCK,
+                    (ray_y) * SIZE_BOCK,
                     1.0,
                     RED,
                 );
