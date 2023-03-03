@@ -3,6 +3,7 @@ use macroquad::prelude::*;
 
 // more info: https://grantshandy.github.io/posts/raycasting/
 // code reference: https://github.com/grantshandy/wasm4-raycaster/blob/main/src/lib.rs
+// my old code: https://github.com/grishy/SNO/blob/master/04/main.js
 
 const MAP_BIN: [u32; 32] = [
     0b111111111111111111111111111111,
