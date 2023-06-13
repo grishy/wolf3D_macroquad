@@ -1,44 +1,8 @@
-use macroquad::math;
 use macroquad::prelude::*;
 
 // more info: https://grantshandy.github.io/posts/raycasting/
 // code reference: https://github.com/grantshandy/wasm4-raycaster/blob/main/src/lib.rs
 // my old code: https://github.com/grishy/SNO/blob/master/04/main.js
-
-const MAP_BIN: [u32; 32] = [
-    0b111111111111111111111111111111,
-    0b100000000001001001001000000001,
-    0b100000000001001001000100000001,
-    0b100000000001001001000010000001,
-    0b100000000001001001000001000001,
-    0b100000100001001001000000000001,
-    0b100000100001001001000000010001,
-    0b100000100001001001000000001001,
-    0b100000100000000000000000000001,
-    0b100000100000000000000000000001,
-    0b100000100000000000000000000001,
-    0b100000100000000000011100000001,
-    0b100000000000000000010100000001,
-    0b100000000000000000011100000001,
-    0b100000000000000000000000000001,
-    0b100000000000000000000000000001,
-    0b100000000000000000000000000001,
-    0b100000000000000000000000000001,
-    0b100000100000000000000000000001,
-    0b100000100000000000000000000001,
-    0b100000100000000000000000000001,
-    0b100000100000000000000000000001,
-    0b100000100000000000000000000001,
-    0b100000100000010000000011110001,
-    0b100000000000111000000010000001,
-    0b100000000000010000000010000001,
-    0b100000000000000000000010001001,
-    0b100000000000000000000010000001,
-    0b100000000000000000000010000001,
-    0b100000000000000000000010000001,
-    0b100000000000000000000010000001,
-    0b111111111111111111111111111111,
-];
 
 const MAP: [[usize; 30]; 30] = [
     [
@@ -136,7 +100,7 @@ const MAP: [[usize; 30]; 30] = [
 const SIZE_BOCK: f32 = 24.0;
 const SIZE_PLAYER: f32 = 12.0;
 const PLAYER_SPEED: f32 = 0.1;
-const focalLength: f32 = 0.8;
+const FOCAL_LENGTH: f32 = 0.8;
 
 struct State {
     player_x: f32,
@@ -183,10 +147,10 @@ fn draw_top(game_state: &mut State) {
         for column in 0..=num_ray {
             // -0.5 < x < 0.5
             let x = column as f32 / num_ray as f32 - 0.5;
-            let angle = game_state.player_angle_radians + x.atan2(focalLength);
+            let angle = game_state.player_angle_radians + x.atan2(FOCAL_LENGTH);
             let length = 40.0;
 
-            let (ray_x, ray_y) = castRay(game_state, angle, length);
+            let (ray_x, ray_y) = cast_ray(game_state, angle, length);
 
             draw_line(
                 game_state.player_x * SIZE_BOCK,
@@ -229,24 +193,24 @@ fn draw_first(game_state: &mut State) {
         for column in 0..=num_ray {
             // -0.5 < x < 0.5
             let x = column as f32 / num_ray as f32 - 0.5;
-            let angle = game_state.player_angle_radians + x.atan2(focalLength);
+            let angle = game_state.player_angle_radians + x.atan2(FOCAL_LENGTH);
             let length = 40.0;
 
-            let (ray_x, ray_y) = castRay(game_state, angle, length);
+            let (ray_x, ray_y) = cast_ray(game_state, angle, length);
 
             let v_player = dvec2(game_state.player_x as f64, game_state.player_y as f64);
             let v_ray = dvec2(ray_x as f64, ray_y as f64);
-            let distance = v_player.distance(v_ray) as f32 * x.atan2(focalLength).cos();
-            let wallHeight = 1000.0 / distance;
+            let distance = v_player.distance(v_ray) as f32 * x.atan2(FOCAL_LENGTH).cos();
+            let wall_height = 1000.0 / distance;
 
             let middle = macroquad::window::screen_height() / 2.0;
             let color = 10.0 / distance * 255.0;
 
             draw_line(
                 column as f32,
-                middle - wallHeight,
+                middle - wall_height,
                 column as f32,
-                middle + wallHeight,
+                middle + wall_height,
                 1.0,
                 Color::from_rgba(255, 0, 0, color as u8),
             );
@@ -341,63 +305,63 @@ fn walk(state: &mut State, speed: f32) {
     }
 }
 
-fn castRay(state: &mut State, angle: f32, range: f32) -> (f32, f32) {
+fn cast_ray(state: &mut State, angle: f32, range: f32) -> (f32, f32) {
     let sin = angle.sin();
     let cos = angle.cos();
     let tan = sin / cos;
     let cot = cos / sin;
-    let cosNegative = cos < 0.0;
-    let sinNegative = sin < 0.0;
+    let cos_negative = cos < 0.0;
+    let sin_negative = sin < 0.0;
 
-    let mut currentX = state.player_x;
-    let mut currentY = state.player_y;
+    let mut current_x = state.player_x;
+    let mut current_y = state.player_y;
 
     let mut distance = 0.0;
 
-    while (distance < range) {
+    while distance < range {
         // Collision with the nearest axis X
-        let dxx = if cosNegative {
-            (currentX - 1.0).ceil() - currentX
+        let dxx = if cos_negative {
+            (current_x - 1.0).ceil() - current_x
         } else {
-            (currentX + 1.0).floor() - currentX
+            (current_x + 1.0).floor() - current_x
         };
 
         let dxy = dxx * tan;
-        let lengthX2 = dxx * dxx + dxy * dxy;
+        let length_x2 = dxx * dxx + dxy * dxy;
 
         // Collision with the nearest axis Y
-        let dyx = if sinNegative {
-            (currentY - 1.0).ceil() - currentY
+        let dyx = if sin_negative {
+            (current_y - 1.0).ceil() - current_y
         } else {
-            (currentY + 1.0).floor() - currentY
+            (current_y + 1.0).floor() - current_y
         };
 
         let dyy = dyx * cot;
-        let lengthY2 = dyx * dyx + dyy * dyy;
+        let length_y2 = dyx * dyx + dyy * dyy;
 
-        let mut collision = false;
 
-        if (lengthX2 < lengthY2) {
-            currentX = currentX + dxx;
-            currentY = currentY + dxy;
-            distance = distance + lengthX2.sqrt();
+        if length_x2 < length_y2 {
+            current_x = current_x + dxx;
+            current_y = current_y + dxy;
+            distance = distance + length_x2.sqrt();
 
-            let shift = if cosNegative { 1.0 } else { 0.0 };
+            let shift = if cos_negative { 1.0 } else { 0.0 };
 
-            collision = collision_check(currentX - shift, currentY);
+            if collision_check(current_x - shift, current_y) {
+                break;
+            };
         } else {
-            currentX = currentX + dyy;
-            currentY = currentY + dyx;
-            distance = distance + lengthY2.sqrt();
+            current_x = current_x + dyy;
+            current_y = current_y + dyx;
+            distance = distance + length_y2.sqrt();
 
-            let shift = if sinNegative { 1.0 } else { 0.0 };
-            collision = collision_check(currentX, currentY - shift);
+            let shift = if sin_negative { 1.0 } else { 0.0 };
+            if collision_check(current_x, current_y - shift) {
+                break;
+            }
         }
 
-        if (collision) {
-            break;
-        };
     }
 
-    (currentX, currentY)
+    (current_x, current_y)
 }
